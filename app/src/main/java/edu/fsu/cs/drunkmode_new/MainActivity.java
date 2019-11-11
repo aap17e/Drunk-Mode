@@ -3,7 +3,6 @@ package edu.fsu.cs.drunkmode_new;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
-import android.app.Service;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.util.Log;
@@ -27,6 +26,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private TextView mDetailTextView;
     private EditText mEmailField;
     private EditText mPasswordField;
+    private EditText mNameField;
+
     private FirebaseDatabase database = FirebaseDatabase.getInstance();
 
 
@@ -42,11 +43,14 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         mDetailTextView = findViewById(R.id.detail);
         mEmailField = findViewById(R.id.fieldEmail);
         mPasswordField = findViewById(R.id.fieldPassword);
+        mNameField = findViewById(R.id.fieldName);
 
         // Buttons
-        findViewById(R.id.emailSignInButton).setOnClickListener(this);
+        findViewById(R.id.changeToSignInButton).setOnClickListener(this);
         findViewById(R.id.emailCreateAccountButton).setOnClickListener(this);
         findViewById(R.id.signOutButton).setOnClickListener(this);
+        findViewById(R.id.signInButton).setOnClickListener(this);
+        findViewById(R.id.backToCreateAccountButton).setOnClickListener(this);
 
         mAuth = FirebaseAuth.getInstance();
     }
@@ -58,7 +62,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         updateUI(currentUser);
     }
 
-    public void createAccount(String email, String password){
+    public void createAccount(String email, String password, final String name){
 
         Log.d(TAG, "createAccount:" + email);
         if (!validateForm()) {
@@ -72,7 +76,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     Log.d(TAG, "createUserWithEmail:success");
                     FirebaseUser user = mAuth.getCurrentUser();
                     updateUI(user);
-                    writeUserData(user.getUid(), "ADD USER TEST");
+                    DatabaseReference ref = database.getReference("users");
+                    ref.child(user.getUid()).child("Name").setValue(name);
                 } else {
                     Log.w(TAG, "createUserWithEmail:failure", task.getException());
                     Toast.makeText(getApplicationContext(), "Authentication failed.", Toast.LENGTH_SHORT).show();
@@ -142,6 +147,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     private void signOut() {
         mAuth.signOut();
+        mNameField.setText("");
+        mEmailField.setText("");
+        mPasswordField.setText("");
         updateUI(null);
     }
 
@@ -153,6 +161,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             findViewById(R.id.emailPasswordButtons).setVisibility(View.GONE);
             findViewById(R.id.emailPasswordFields).setVisibility(View.GONE);
             findViewById(R.id.signedInButtons).setVisibility(View.VISIBLE);
+            findViewById(R.id.signInButtons).setVisibility(View.GONE);
 
         } else {
             mStatusTextView.setText(R.string.signed_out);
@@ -161,24 +170,31 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             findViewById(R.id.emailPasswordButtons).setVisibility(View.VISIBLE);
             findViewById(R.id.emailPasswordFields).setVisibility(View.VISIBLE);
             findViewById(R.id.signedInButtons).setVisibility(View.GONE);
+            findViewById(R.id.signInButtons).setVisibility(View.GONE);
+            findViewById(R.id.fieldName).setVisibility(View.VISIBLE);
         }
+    }
+
+    private void signInMenu() {
+        findViewById(R.id.emailPasswordButtons).setVisibility(View.GONE);
+        findViewById(R.id.signInButtons).setVisibility(View.VISIBLE);
+        findViewById(R.id.fieldName).setVisibility(View.GONE);
     }
 
     @Override
     public void onClick(View v) {
         int i = v.getId();
         if (i == R.id.emailCreateAccountButton) {
-            createAccount(mEmailField.getText().toString(), mPasswordField.getText().toString());
-        } else if (i == R.id.emailSignInButton) {
+            createAccount(mEmailField.getText().toString(), mPasswordField.getText().toString(), mNameField.getText().toString());
+        } else if (i == R.id.changeToSignInButton) {
+            signInMenu();
+        } else if (i == R.id.signInButton) {
             signIn(mEmailField.getText().toString(), mPasswordField.getText().toString());
+        } else if (i == R.id.backToCreateAccountButton) {
+            updateUI(null);
         } else if (i == R.id.signOutButton) {
             signOut();
         }
     }
 
-    private void writeUserData(String userId, String name) {
-        DatabaseReference ref = database.getReference("users");
-        ref.child(userId).child("Name").setValue(name);
-
-    }
 }
